@@ -219,7 +219,7 @@
                                                                                         src="img/baner5.jpg"
                                                                                         lazy="loaded"></div>
                             <div data-v-7cbde459="" data-v-6e534c71="" class="flex1"><span data-v-7cbde459=""
-                                                                                           data-v-6e534c71="">Rendimento diário: 6,000 KZ</span>
+                                                                                           data-v-6e534c71="">Rendimento diário: 4,000 KZ</span>
                             </div>
                         </div>
                         <div data-v-7cbde459="" data-v-6e534c71="" class="name1">Microsoft 4</div>
@@ -229,7 +229,7 @@
                         <ul data-v-7cbde459="" data-v-6e534c71="" class="it1">
                             <li data-v-7cbde459="" data-v-6e534c71="" class="flex">
                                 <div data-v-7cbde459="" data-v-6e534c71="" class="flex1">Ciclo de tratamento：</div>
-                                <div data-v-7cbde459="" data-v-6e534c71="" class="s">90 Dias</div>
+                                <div data-v-7cbde459="" data-v-6e534c71="" class="s">60 Dias</div>
                             </li>
                             <li data-v-7cbde459="" data-v-6e534c71="" class="flex">
                                 <div data-v-7cbde459="" data-v-6e534c71="" class="flex1">Tipo de negociação：</div>
@@ -237,11 +237,11 @@
                             </li>
                             <li data-v-7cbde459="" data-v-6e534c71="" class="flex">
                                 <div data-v-7cbde459="" data-v-6e534c71="" class="flex1">Preço de negociação：</div>
-                                <div data-v-7cbde459="" data-v-6e534c71="" class="s">30,000 KZ</div>
+                                <div data-v-7cbde459="" data-v-6e534c71="" class="s">32,000 KZ</div>
                             </li>
                             <li data-v-7cbde459="" data-v-6e534c71="" class="flex">
                                 <div data-v-7cbde459="" data-v-6e534c71="" class="flex1">Valor total da renda：</div>
-                                <div data-v-7cbde459="" data-v-6e534c71="" class="s">540,000 KZ</div>
+                                <div data-v-7cbde459="" data-v-6e534c71="" class="s">240,000 KZ</div>
                             </li>
                         </ul>
                     </div>
@@ -256,12 +256,12 @@
                             </div>
                         </div>
 
-                        <div data-v-7cbde459="" data-v-6e534c71="" class="val">
+                            <div data-v-7cbde459="" data-v-6e534c71="" class="val">
                             <input data-v-7cbde459="" data-v-6e534c71="" 
                                 type="number" 
                                 placeholder="Digite o valor" 
                                 name="amount"
-                                value="30000"
+                                value="32000"
                                 readonly
                                 style="background: #f9f5f0; text-align: center; font-weight: bold; color: #000000;">
                         </div>
@@ -269,7 +269,7 @@
                         <div id="purchase-message" class="purchase-message" style="display: none;"></div>
                         
                             <button class="bbtyn" id="buy-button" onclick="buyProduct()">
-                            <span id="button-text">Comprar Microsoft 4 - 30,000 KZ</span>
+                            <span id="button-text">Comprar VIP 4 - 32,000 KZ</span>
                             <span id="button-loading" class="loading" style="display: none;"></span>
                         </button>
                     </div>
@@ -287,10 +287,10 @@
 const PRODUCT_CONFIG = {
     id: 4,
     name: "VIP 4",
-    price: 40000, // em KZ
+    price: 32000, // em KZ
     daily_return: 4000, // em KZ
-    cycle_days: 90,
-    total_return: 360000, // em KZ
+    cycle_days: 60,
+    total_return: 240000, // em KZ (conforme fornecido)
     payout_interval: 24 * 60 * 60 * 1000 // 24 HORAS em milissegundos (PRODUÇÃO)
 };
 
@@ -402,7 +402,7 @@ async function buyProduct() {
         const data = await response.json();
 
         if (data.success) {
-            showNotification('✅ Compra realizada com sucesso! Rendimentos diários de 6,000 KZ iniciados.', 'success');
+            showNotification('✅ Compra realizada com sucesso! Rendimentos diários de ' + PRODUCT_CONFIG.daily_return + ' KZ iniciados.', 'success');
             
             // Mostrar mensagem de sucesso
             messageElement.textContent = 'Compra realizada! Rendimentos começam em 24 horas.';
@@ -433,7 +433,7 @@ async function buyProduct() {
         messageElement.style.display = 'block';
     } finally {
     // Reabilitar botão
-    buttonText.textContent = 'Comprar Microsoft 4 - 30,000 KZ';
+    buttonText.textContent = 'Comprar ' + PRODUCT_CONFIG.name + ' - ' + PRODUCT_CONFIG.price.toLocaleString() + ' KZ';
         buttonLoading.style.display = 'none';
         updateBuyButton(parseInt(document.getElementById('user-balance').textContent) || 0);
     }
