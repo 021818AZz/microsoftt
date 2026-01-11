@@ -452,7 +452,8 @@ div[style*="margin-top:45px"] img:hover {
                         </div>
                     </div>
                     <div class="u-form-item__body__right">
-                        <input id="mobile" name="mobile" autocomplete="off" type="text" maxlength="17" placeholder="Número de telefone" value="" autofocus="autofocus" required>
+                        <!-- MODIFICAÇÃO AQUI: maxlength="9" e placeholder pedindo 9 números -->
+                        <input id="mobile" name="mobile" autocomplete="off" type="text" maxlength="9" placeholder="Digite 9 números (ex: 912345678)" value="" autofocus="autofocus" required>
                     </div>
                 </div>
                 <div id="mobileError" class="error-message" style="margin: 5px 0 0 0;"></div>
@@ -580,16 +581,17 @@ function isValidInvitationCode(code) {
     return code && code.length >= 4 && code.length <= 8 && /^[A-Z0-9]+$/.test(code);
 }
 
-// Validar número de telefone
+// Validar número de telefone - MODIFICAÇÃO IMPORTANTE AQUI
 function validateMobile(mobile) {
     if (!mobile) {
         showError('mobileError', 'Digite o número de telefone');
         return false;
     }
     
-    const myreg = /^[0-9]{6,16}$/;
+    // MODIFICAÇÃO: Verificar se são exatamente 9 números
+    const myreg = /^[0-9]{9}$/;  // Alterado para exigir exatamente 9 números
     if (!myreg.test(mobile)) {
-        showError('mobileError', 'O formato do número de telefone não está correto');
+        showError('mobileError', 'Digite exatamente 9 números (ex: 912345678)');
         return false;
     }
     
@@ -705,9 +707,9 @@ async function submitForm() {
         return;
     }
     
-    // Preparar dados para envio (244 + números digitados)
+    // MODIFICAÇÃO IMPORTANTE AQUI: Enviar apenas os 9 números, sem o 244
     const formData = {
-        mobile: AREA_CODE + mobile,
+        mobile: mobile,  // Apenas os 9 números digitados
         password: password,
         invitation_code: invitationCode || null,
         saldo: 600
@@ -767,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Permitir apenas números no campo de telefone
     mobileInput.addEventListener('input', function(e) {
         const numbers = e.target.value.replace(/\D/g, '');
-        e.target.value = numbers.slice(0, 17);
+        e.target.value = numbers.slice(0, 9);  // Alterado para 9 números
     });
     
     // Event listeners para validação em tempo real
