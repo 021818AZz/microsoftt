@@ -366,6 +366,20 @@ div[style*="margin-top:45px"] img:hover {
     border-radius: 15px 15px 0 0;
   }
 }
+
+/* Adicionar mensagem de erro */
+.error-message {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef9a9a;
+  padding: 8px;
+  border-radius: 6px;
+  margin: 5px 0 0 0;
+  text-align: center;
+  border: 1px solid rgba(239, 154, 154, 0.3);
+  border-left: 4px solid #f44336;
+  display: none;
+  font-size: 14px;
+}
 </style>
 </head>
 <body ontouchstart="">
@@ -378,6 +392,9 @@ div[style*="margin-top:45px"] img:hover {
 <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
 </div>
+
+<!-- Mensagem de erro -->
+<div id="mobileError" class="error-message" style="display: none; margin: 10px 30px;"></div>
 
 <form id="myform" method="post" role="form" style="margin-top:50px;">
 <div class="container">
@@ -399,7 +416,8 @@ div[style*="margin-top:45px"] img:hover {
                         </div>
                     </div>
                     <div class="u-form-item__body__right">
-                        <input id="user_name" name="user_name" autocomplete="off" type="text" maxlength="30" placeholder="Número de telefone" value="" autofocus="autofocus" required>
+                        <!-- Alterado maxlength para 9 e placeholder -->
+                        <input id="user_name" name="user_name" autocomplete="off" type="text" maxlength="9" placeholder="Digite 9 números (ex: 912345678)" value="" autofocus="autofocus" required>
                     </div>
                 </div>
             </div>
@@ -434,8 +452,63 @@ div[style*="margin-top:45px"] img:hover {
 
 <script>
 // Configuração da API
-const API_BASE_URL = 'https://bd-p4q7.onrender.com'; // Substitua pela URL real da sua API
-const TOKEN_EXPIRY_HOURS = 5; // Token expira em 5 horas
+const API_BASE_URL = 'https://bd-p4q7.onrender.com';
+const TOKEN_EXPIRY_HOURS = 5;
+
+// Elementos DOM
+const userInput = document.getElementById('user_name');
+const mobileError = document.getElementById('mobileError');
+
+// Função para limpar e formatar o número do telefone
+function cleanPhoneNumber(input) {
+    // Remove tudo que não é número
+    let numbers = input.replace(/\D/g, '');
+    
+    // Se começar com 244, remove
+    if (numbers.startsWith('244')) {
+        numbers = numbers.substring(3); // Remove os primeiros 3 dígitos (244)
+    }
+    
+    // Limita a 9 números
+    numbers = numbers.slice(0, 9);
+    
+    return numbers;
+}
+
+// Função para validar o número de telefone
+function validateMobile(mobile) {
+    if (!mobile) {
+        showError('Digite o número de telefone');
+        return false;
+    }
+    
+    // Verifica se tem exatamente 9 números
+    const myreg = /^[0-9]{9}$/;
+    if (!myreg.test(mobile)) {
+        showError('Digite exatamente 9 números (ex: 912345678)');
+        return false;
+    }
+    
+    // Verifica se NÃO começa com 244 (isso seria o código do país, não número do usuário)
+    if (mobile.startsWith('244')) {
+        showError('Digite apenas os 9 números do telefone (sem o código 244)');
+        return false;
+    }
+    
+    hideError();
+    return true;
+}
+
+// Mostrar erro
+function showError(message) {
+    mobileError.textContent = message;
+    mobileError.style.display = 'block';
+}
+
+// Ocultar erro
+function hideError() {
+    mobileError.style.display = 'none';
+}
 
 // Função para seleção de código de área
 function quhao_select() {
@@ -457,50 +530,27 @@ function qhselect(quhao) {
 // Função para mostrar/ocultar loading
 function showLoading(show) {
     const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = show ? 'flex' : 'none';
-    } else if (show) {
-        // Criar overlay de loading se não existir
-        const overlay = document.createElement('div');
-        overlay.id = 'loadingOverlay';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            backdrop-filter: blur(5px);
-        `;
-        overlay.innerHTML = `
-            <div style="background: rgba(45, 45, 45, 0.9); padding: 20px; border-radius: 12px; color: var(--ms-blue-light); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); border: 1px solid var(--ms-blue-primary);">
-                <p style="margin: 0; color: var(--ms-blue-accent); font-weight: 600;">Carregando...</p>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-    }
+    loadingOverlay.style.display = show ? 'flex' : 'none';
 }
 
-// Função principal de login
+// Função principal de login MODIFICADA
 async function dosubmit() {
-    const areaCode = $("#area_code").html();
-    const user_name = $("#user_name").val();
-    const password = $("#password").val();
+    // Limpa e formata o número do telefone
+    let userMobile = cleanPhoneNumber(userInput.value);
     
-    // Validações
-    if (!user_name) {
-        layer.open({
-            content: 'Digite o número de telefone',
-            skin: 'msg',
-            time: 2
-        });
+    // Atualiza o valor no campo
+    userInput.value = userMobile;
+    
+    // Valida o número
+    const isMobileValid = validateMobile(userMobile);
+    
+    if (!isMobileValid) {
         return false;
     }
     
+    const password = $("#password").val();
+    
+    // Validações básicas
     if (!password) {
         layer.open({
             content: 'Digite a senha',
@@ -510,20 +560,20 @@ async function dosubmit() {
         return false;
     }
 
-    // Combinar código do país com número de telefone
-    const mobile = areaCode + user_name;
-
+    // IMPORTANTE: Envia APENAS os 9 números para a API
+    // NÃO envia o código do país (244)
     showLoading(true);
 
     try {
         // Fazer requisição para a API de login
+        // ENVIA APENAS OS 9 NÚMEROS
         const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                mobile: mobile,
+                mobile: userMobile, // Apenas os 9 números
                 password: password
             })
         });
@@ -537,9 +587,9 @@ async function dosubmit() {
                 expiry: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) // 5 horas a partir de agora
             };
             
-            // Salvar no localStorage (sem cookies)
+            // Salvar no localStorage
             localStorage.setItem('user_token', JSON.stringify(tokenData));
-            localStorage.setItem('user_mobile', user_name);
+            localStorage.setItem('user_mobile', userMobile);
             localStorage.setItem('user_id', data.data.user.id);
             
             layer.open({
@@ -547,7 +597,7 @@ async function dosubmit() {
                 skin: 'msg',
                 time: 2,
                 end: function() {
-                    // Redirecionar para a página principal/dashboard
+                    // Redirecionar para a página principal
                     window.location.href = '/principal.html';
                 }
             });
@@ -595,12 +645,12 @@ function isTokenValid() {
     }
 }
 
-// Verificar se já está logado ao carregar a página
+// Event Listeners para validação em tempo real
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar número salvo se existir
     const savedMobile = localStorage.getItem('user_mobile');
-    if (savedMobile && document.getElementById('user_name')) {
-        document.getElementById('user_name').value = savedMobile;
+    if (savedMobile && userInput) {
+        userInput.value = savedMobile;
     }
     
     // Verificar se há token válido no localStorage
@@ -609,7 +659,25 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = '/dashboard.html';
     }
     
-    // Tecla Enter para submeter o formulário (apenas se o campo existir)
+    // Event listener para formatar o número enquanto digita
+    userInput.addEventListener('input', function(e) {
+        // Limpa e formata o número
+        let numbers = cleanPhoneNumber(e.target.value);
+        e.target.value = numbers;
+        
+        // Valida em tempo real
+        if (numbers.length === 9) {
+            validateMobile(numbers);
+        }
+    });
+    
+    // Event listener para validar quando sai do campo
+    userInput.addEventListener('blur', function() {
+        let numbers = cleanPhoneNumber(userInput.value);
+        validateMobile(numbers);
+    });
+    
+    // Tecla Enter para submeter o formulário
     const passwordField = document.getElementById('password');
     if (passwordField) {
         passwordField.addEventListener('keypress', function(e) {
