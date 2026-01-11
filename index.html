@@ -416,8 +416,8 @@ div[style*="margin-top:45px"] img:hover {
                         </div>
                     </div>
                     <div class="u-form-item__body__right">
-                        <!-- Alterado maxlength para 9 e placeholder -->
-                        <input id="user_name" name="user_name" autocomplete="off" type="text" maxlength="9" placeholder="Digite 9 números (ex: 912345678)" value="" autofocus="autofocus" required>
+                        <!-- Alterado para 9 números começando com 9 -->
+                        <input id="user_name" name="user_name" autocomplete="off" type="text" maxlength="9" placeholder="9 números (ex: 9xxxxxxxx)" value="" autofocus="autofocus" required>
                     </div>
                 </div>
             </div>
@@ -459,44 +459,70 @@ const TOKEN_EXPIRY_HOURS = 5;
 const userInput = document.getElementById('user_name');
 const mobileError = document.getElementById('mobileError');
 
-// Função para limpar e formatar o número do telefone
-function cleanPhoneNumber(input) {
+// Função para limpar e validar o número do telefone
+function cleanAndValidatePhoneNumber(input) {
     // Remove tudo que não é número
     let numbers = input.replace(/\D/g, '');
     
-    // Se começar com 244, remove
+    // Se começar com 244, é inválido - isso seria o código do país
     if (numbers.startsWith('244')) {
-        numbers = numbers.substring(3); // Remove os primeiros 3 dígitos (244)
+        return {
+            cleanNumber: numbers,
+            isValid: false,
+            error: 'Digite apenas os 9 números do telefone (começando com 9). O código 244 já está selecionado acima.'
+        };
     }
     
     // Limita a 9 números
     numbers = numbers.slice(0, 9);
     
-    return numbers;
+    // Verifica se tem exatamente 9 números e começa com 9
+    if (numbers.length === 9) {
+        if (!numbers.startsWith('9')) {
+            return {
+                cleanNumber: numbers,
+                isValid: false,
+                error: 'O número deve começar com 9 (ex: 9xxxxxxxx)'
+            };
+        }
+    }
+    
+    return {
+        cleanNumber: numbers,
+        isValid: true,
+        error: null
+    };
 }
 
 // Função para validar o número de telefone
-function validateMobile(mobile) {
-    if (!mobile) {
+function validateMobile() {
+    const validation = cleanAndValidatePhoneNumber(userInput.value);
+    
+    if (!validation.cleanNumber) {
         showError('Digite o número de telefone');
         return false;
     }
     
     // Verifica se tem exatamente 9 números
-    const myreg = /^[0-9]{9}$/;
-    if (!myreg.test(mobile)) {
-        showError('Digite exatamente 9 números (ex: 912345678)');
+    if (validation.cleanNumber.length !== 9) {
+        showError('Digite exatamente 9 números (ex: 9xxxxxxxx)');
         return false;
     }
     
-    // Verifica se NÃO começa com 244 (isso seria o código do país, não número do usuário)
-    if (mobile.startsWith('244')) {
-        showError('Digite apenas os 9 números do telefone (sem o código 244)');
+    // Verifica se começa com 9
+    if (!validation.cleanNumber.startsWith('9')) {
+        showError('O número deve começar com 9 (ex: 9xxxxxxxx)');
+        return false;
+    }
+    
+    // Verifica se NÃO começa com 244
+    if (validation.cleanNumber.startsWith('244')) {
+        showError('Digite apenas os 9 números do telefone. O código 244 já está selecionado acima.');
         return false;
     }
     
     hideError();
-    return true;
+    return validation.cleanNumber;
 }
 
 // Mostrar erro
@@ -533,18 +559,12 @@ function showLoading(show) {
     loadingOverlay.style.display = show ? 'flex' : 'none';
 }
 
-// Função principal de login MODIFICADA
+// Função principal de login
 async function dosubmit() {
-    // Limpa e formata o número do telefone
-    let userMobile = cleanPhoneNumber(userInput.value);
+    // Valida e obtém o número limpo
+    const userMobile = validateMobile();
     
-    // Atualiza o valor no campo
-    userInput.value = userMobile;
-    
-    // Valida o número
-    const isMobileValid = validateMobile(userMobile);
-    
-    if (!isMobileValid) {
+    if (!userMobile) {
         return false;
     }
     
@@ -560,20 +580,25 @@ async function dosubmit() {
         return false;
     }
 
-    // IMPORTANTE: Envia APENAS os 9 números para a API
-    // NÃO envia o código do país (244)
     showLoading(true);
 
     try {
-        // Fazer requisição para a API de login
-        // ENVIA APENAS OS 9 NÚMEROS
+        // IMPORTANTE: Envia APENAS os 9 números começando com 9 para a API
+        // Exemplo: se o usuário digitar "912345678", envia apenas isso
+        // NÃO envia "244912345678" nem "244" + nada
+        
+        console.log('Enviando para API:', {
+            mobile: userMobile, // Apenas "912345678"
+            password: password
+        });
+
         const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                mobile: userMobile, // Apenas os 9 números
+                mobile: userMobile, // APENAS 9 números começando com 9
                 password: password
             })
         });
@@ -581,10 +606,10 @@ async function dosubmit() {
         const data = await response.json();
 
         if (data.success) {
-            // Login bem-sucedido - Armazenar no localStorage com expiração
+            // Login bem-sucedido
             const tokenData = {
                 token: data.data.token,
-                expiry: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) // 5 horas a partir de agora
+                expiry: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
             };
             
             // Salvar no localStorage
@@ -597,7 +622,6 @@ async function dosubmit() {
                 skin: 'msg',
                 time: 2,
                 end: function() {
-                    // Redirecionar para a página principal
                     window.location.href = '/principal.html';
                 }
             });
@@ -629,9 +653,7 @@ function isTokenValid() {
     try {
         const { token, expiry } = JSON.parse(tokenData);
         
-        // Verificar se o token expirou
         if (Date.now() > expiry) {
-            // Token expirado, remover do localStorage
             localStorage.removeItem('user_token');
             localStorage.removeItem('user_mobile');
             localStorage.removeItem('user_id');
@@ -645,7 +667,7 @@ function isTokenValid() {
     }
 }
 
-// Event Listeners para validação em tempo real
+// Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar número salvo se existir
     const savedMobile = localStorage.getItem('user_mobile');
@@ -653,31 +675,38 @@ document.addEventListener('DOMContentLoaded', function() {
         userInput.value = savedMobile;
     }
     
-    // Verificar se há token válido no localStorage
+    // Verificar se há token válido
     if (isTokenValid()) {
-        // Se já tem token válido, redirecionar para dashboard
         window.location.href = '/dashboard.html';
     }
     
     // Event listener para formatar o número enquanto digita
     userInput.addEventListener('input', function(e) {
-        // Limpa e formata o número
-        let numbers = cleanPhoneNumber(e.target.value);
+        // Remove caracteres não numéricos
+        let numbers = e.target.value.replace(/\D/g, '');
+        
+        // Limita a 9 números
+        numbers = numbers.slice(0, 9);
+        
+        // Atualiza o campo
         e.target.value = numbers;
         
-        // Valida em tempo real
+        // Se tiver 9 números, valida
         if (numbers.length === 9) {
-            validateMobile(numbers);
+            validateMobile();
+        } else {
+            hideError();
         }
     });
     
     // Event listener para validar quando sai do campo
     userInput.addEventListener('blur', function() {
-        let numbers = cleanPhoneNumber(userInput.value);
-        validateMobile(numbers);
+        if (userInput.value) {
+            validateMobile();
+        }
     });
     
-    // Tecla Enter para submeter o formulário
+    // Tecla Enter para submeter
     const passwordField = document.getElementById('password');
     if (passwordField) {
         passwordField.addEventListener('keypress', function(e) {
